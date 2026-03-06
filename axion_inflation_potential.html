@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Axion Star Inflation Potential</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap');
+
+  :root {
+    --bg: #030810;
+    --panel: #060d1a;
+    --border: #0d2040;
+    --accent: #00c8ff;
+    --gold: #f0a030;
+    --green: #30e8a0;
+    --red: #ff4060;
+    --text: #8ab0d0;
+    --textbright: #c8e0f0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Pro', serif;
+    font-size: 16px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Starfield */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, rgba(200,220,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 25% 60%, rgba(200,220,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 40% 10%, rgba(200,220,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 80%, rgba(200,220,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 70% 35%, rgba(200,220,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 85% 70%, rgba(200,220,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 15% 90%, rgba(200,220,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 15%, rgba(200,220,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 62% 55%, rgba(200,220,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 35% 40%, rgba(200,220,255,0.6) 0%, transparent 100%);
+    pointer-events: none; z-index: 0;
+  }
+
+  header {
+    position: relative; z-index: 10;
+    padding: 2rem 3rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: flex-end;
+  }
+
+  .title-block h1 {
+    font-size: 1.4rem;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .title-block .subtitle {
+    font-size: 0.8rem;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--text);
+    letter-spacing: 0.1em;
+    opacity: 0.6;
+    margin-top: 0.25rem;
+  }
+
+  .badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    letter-spacing: 0.1em;
+  }
+
+  .main-grid {
+    position: relative; z-index: 5;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 0;
+    height: calc(100vh - 90px);
+  }
+
+  /* Canvas panel */
+  .canvas-panel {
+    padding: 1.5rem 2rem;
+    display: flex; flex-direction: column; gap: 1rem;
+    border-right: 1px solid var(--border);
+  }
+
+  .plot-wrap {
+    position: relative;
+    flex: 1;
+  }
+
+  canvas {
+    width: 100%; height: 100%;
+    display: block;
+  }
+
+  .plot-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text);
+    opacity: 0.5;
+    letter-spacing: 0.08em;
+  }
+
+  .axis-x { text-align: center; margin-top: 0.25rem; }
+  .axis-y {
+    position: absolute; left: -1rem; top: 50%;
+    transform: rotate(-90deg) translateX(-50%);
+    transform-origin: left center;
+    white-space: nowrap;
+  }
+
+  /* Tabs */
+  .tab-row {
+    display: flex; gap: 0;
+    border: 1px solid var(--border);
+    width: fit-content;
+  }
+  .tab {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    padding: 0.4rem 0.9rem;
+    cursor: pointer;
+    border-right: 1px solid var(--border);
+    color: var(--text);
+    transition: all 0.2s;
+    background: transparent;
+    border: none;
+  }
+  .tab:last-child { border-right: none; }
+  .tab.active { background: var(--accent); color: var(--bg); }
+  .tab:hover:not(.active) { color: var(--accent); }
+
+  /* Side panel */
+  .side-panel {
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+    padding: 1.5rem 1.5rem;
+    gap: 1.5rem;
+    background: var(--panel);
+  }
+
+  .section-head {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  /* Sliders */
+  .param-row {
+    display: flex; flex-direction: column; gap: 0.3rem;
+    margin-bottom: 0.75rem;
+  }
+  .param-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .param-name {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--textbright);
+  }
+  .param-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--gold);
+  }
+  .param-desc {
+    font-style: italic;
+    font-size: 0.78rem;
+    color: var(--text);
+    opacity: 0.7;
+    line-height: 1.3;
+  }
+
+  input[type=range] {
+    width: 100%;
+    height: 3px;
+    -webkit-appearance: none;
+    background: var(--border);
+    border-radius: 0;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px; height: 10px;
+    background: var(--accent);
+    border-radius: 0;
+    cursor: pointer;
+  }
+  input[type=range]:focus::-webkit-slider-thumb { background: var(--gold); }
+
+  /* Physics readout */
+  .readout-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  .readout-cell {
+    background: #080f1e;
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.6rem;
+  }
+  .readout-key {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--text);
+    opacity: 0.6;
+    letter-spacing: 0.08em;
+  }
+  .readout-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--green);
+    margin-top: 0.15rem;
+  }
+  .readout-num.warn { color: var(--red); }
+
+  /* Phase timeline */
+  .timeline {
+    display: flex; flex-direction: column; gap: 0.4rem;
+  }
+  .phase-item {
+    display: flex; align-items: center; gap: 0.6rem;
+  }
+  .phase-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .phase-text {
+    font-size: 0.8rem;
+    line-height: 1.3;
+    color: var(--text);
+  }
+  .phase-text strong {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--textbright);
+  }
+
+  /* Equation display */
+  .eq-box {
+    background: #080f1e;
+    border: 1px solid var(--border);
+    padding: 0.8rem 1rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.9;
+    color: var(--textbright);
+    overflow-x: auto;
+  }
+  .eq-box span.c1 { color: var(--accent); }
+  .eq-box span.c2 { color: var(--gold); }
+  .eq-box span.c3 { color: var(--green); }
+
+  /* Stability indicator */
+  .stability-bar {
+    display: flex; align-items: center; gap: 0.6rem;
+    margin-top: 0.25rem;
+  }
+  .sbar {
+    flex: 1; height: 4px; background: var(--border); border-radius: 0;
+    overflow: hidden;
+  }
+  .sbar-fill {
+    height: 100%;
+    transition: width 0.4s ease, background 0.4s ease;
+  }
+  .sbar-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    width: 80px;
+    text-align: right;
+  }
+
+  .note {
+    font-style: italic;
+    font-size: 0.78rem;
+    color: var(--text);
+    opacity: 0.6;
+    line-height: 1.5;
+    border-left: 2px solid var(--border);
+    padding-left: 0.75rem;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .live-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+    vertical-align: middle;
+    margin-right: 0.3rem;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title-block">
+    <h1>Axion Star Formation — Inflation Potential</h1>
+    <div class="subtitle">Early Universe Cosmology · Parametric Explorer · V(φ) Design</div>
+  </div>
+  <div class="badge">THEORETICAL MODEL</div>
+</header>
+
+<div class="main-grid">
+
+  <!-- Canvas -->
+  <div class="canvas-panel">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div class="tab-row" id="tabRow">
+        <button class="tab active" onclick="switchTab('potential')">V(φ) Potential</button>
+        <button class="tab" onclick="switchTab('field')">Field Evolution</button>
+        <button class="tab" onclick="switchTab('density')">Density Spectrum</button>
+      </div>
+      <div style="font-family:'Share Tech Mono',monospace; font-size:0.65rem; color:var(--text); opacity:0.5;">
+        <span class="live-dot"></span>LIVE COMPUTATION
+      </div>
+    </div>
+    <div class="plot-wrap">
+      <canvas id="mainCanvas"></canvas>
+    </div>
+    <div class="axis-x plot-label" id="xLabel">φ / f_a  (axion decay constant units)</div>
+  </div>
+
+  <!-- Side panel -->
+  <div class="side-panel">
+
+    <div>
+      <div class="section-head">Potential Parameters</div>
+
+      <div class="param-row">
+        <div class="param-header">
+          <span class="param-name">Λ — Energy Scale</span>
+          <span class="param-val" id="val_Lambda">1.00 × 10¹⁶ GeV</span>
+        </div>
+        <div class="param-desc">Sets inflation plateau height; tied to GUT scale</div>
+        <input type="range" id="sl_Lambda" min="0.5" max="3" step="0.05" value="1"
+          oninput="updateParam('Lambda', this.value)">
+      </div>
+
+      <div class="param-row">
+        <div class="param-header">
+          <span class="param-name">α — Axion Coupling</span>
+          <span class="param-val" id="val_alpha">0.10</span>
+        </div>
+        <div class="param-desc">Strength of axion oscillatory modulation on plateau</div>
+        <input type="range" id="sl_alpha" min="0.02" max="0.5" step="0.01" value="0.10"
+          oninput="updateParam('alpha', this.value)">
+      </div>
+
+      <div class="param-row">
+        <div class="param-header">
+          <span class="param-name">n — Cosine Frequency</span>
+          <span class="param-val" id="val_n">1</span>
+        </div>
+        <div class="param-desc">Harmonic number of axion modulation (integer)</div>
+        <input type="range" id="sl_n" min="1" max="5" step="1" value="1"
+          oninput="updateParam('n', this.value)">
+      </div>
+
+      <div class="param-row">
+        <div class="param-header">
+          <span class="param-name">β — Hilltop Curvature</span>
+          <span class="param-val" id="val_beta">0.50</span>
+        </div>
+        <div class="param-desc">Steepness of slow-roll exit; controls reheating onset</div>
+        <input type="range" id="sl_beta" min="0.1" max="2" step="0.05" value="0.5"
+          oninput="updateParam('beta', this.value)">
+      </div>
+
+      <div class="param-row">
+        <div class="param-header">
+          <span class="param-name">f_a — Axion Decay Const.</span>
+          <span class="param-val" id="val_fa">10¹² GeV</span>
+        </div>
+        <div class="param-desc">PQ symmetry-breaking scale; sets axion mass m_a</div>
+        <input type="range" id="sl_fa" min="10" max="16" step="0.5" value="12"
+          oninput="updateParam('fa', this.value)">
+      </div>
+    </div>
+
+    <!-- Equation box -->
+    <div>
+      <div class="section-head">Model Lagrangian</div>
+      <div class="eq-box">
+<span class="c1">V</span>(φ) = <span class="c2">Λ⁴</span> · <span class="c1">F</span>(φ/M<sub>Pl</sub>)
+       · [<span class="c3">1 − α·cos(nφ/f_a)</span>]
+
+<span class="c1">F</span>(x) = 1 − exp(−<span class="c2">β</span>·x²)
+      (Starobinsky-like plateau)
+
+<span class="c1">ℒ</span> = ½(∂φ)² − <span class="c1">V</span>(φ)
+    + ½(∂<span class="c3">a</span>)² − m_a²f_a²[1−cos(<span class="c3">a</span>/f_a)]
+    + <span class="c2">ξ</span>·(∂φ)²·(∂<span class="c3">a</span>)²/Λ⁴
+      </div>
+    </div>
+
+    <!-- Readout -->
+    <div>
+      <div class="section-head">Derived Observables</div>
+      <div class="readout-grid">
+        <div class="readout-cell">
+          <div class="readout-key">n_s (spectral index)</div>
+          <div class="readout-num" id="ro_ns">—</div>
+        </div>
+        <div class="readout-cell">
+          <div class="readout-key">r (tensor ratio)</div>
+          <div class="readout-num" id="ro_r">—</div>
+        </div>
+        <div class="readout-cell">
+          <div class="readout-key">ΔP/P (modulation)</div>
+          <div class="readout-num" id="ro_dP">—</div>
+        </div>
+        <div class="readout-cell">
+          <div class="readout-key">m_a (axion mass)</div>
+          <div class="readout-num" id="ro_ma">—</div>
+        </div>
+        <div class="readout-cell">
+          <div class="readout-key">N_e (e-folds)</div>
+          <div class="readout-num" id="ro_Ne">—</div>
+        </div>
+        <div class="readout-cell">
+          <div class="readout-key">Axion Star M*</div>
+          <div class="readout-num" id="ro_Ms">—</div>
+        </div>
+      </div>
+
+      <div style="margin-top:0.75rem;">
+        <div style="display:flex;justify-content:space-between; font-family:'Share Tech Mono',monospace; font-size:0.65rem; color:var(--text); margin-bottom:0.3rem;">
+          <span>CMB CONSISTENCY</span><span id="cmb_label">—</span>
+        </div>
+        <div class="stability-bar">
+          <div class="sbar"><div class="sbar-fill" id="cmb_bar" style="width:0%;background:var(--green)"></div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between; font-family:'Share Tech Mono',monospace; font-size:0.65rem; color:var(--text); margin-top:0.5rem; margin-bottom:0.3rem;">
+          <span>AXION STAR VIABILITY</span><span id="ast_label">—</span>
+        </div>
+        <div class="stability-bar">
+          <div class="sbar"><div class="sbar-fill" id="ast_bar" style="width:0%;background:var(--gold)"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formation mechanism -->
+    <div>
+      <div class="section-head">Formation Mechanism</div>
+      <div class="timeline">
+        <div class="phase-item">
+          <div class="phase-dot" style="background:var(--accent)"></div>
+          <div class="phase-text"><strong>Inflation (φ ≫ f_a):</strong> Plateau drives ~60 e-folds; cosine modulation imprints oscillatory features on P(k)</div>
+        </div>
+        <div class="phase-item">
+          <div class="phase-dot" style="background:var(--gold)"></div>
+          <div class="phase-text"><strong>Reheating:</strong> φ oscillates near minimum; parametric resonance excites axion zero-mode coherently</div>
+        </div>
+        <div class="phase-item">
+          <div class="phase-dot" style="background:var(--green)"></div>
+          <div class="phase-text"><strong>PQ Restoration → Breaking:</strong> If T_RH > f_a, PQ symmetry briefly restored; domain walls + strings form; axion field condensate produced</div>
+        </div>
+        <div class="phase-item">
+          <div class="phase-dot" style="background:var(--red)"></div>
+          <div class="phase-text"><strong>Axion Star Assembly:</strong> Gravitational collapse of misalignment condensate at overdense nodes; stabilized by quantum pressure → dilute Bose star</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      This model combines Starobinsky-like plateau inflation with a QCD-axion-inspired cosine modulation. The oscillatory imprint on the primordial power spectrum seeds enhanced density fluctuations at axion Jeans scale k_J ~ m_a·(m_a/H)^{1/2}, enabling gravitational condensation into axion stars post-QCD transition.
+    </div>
+
+  </div>
+</div>
+
+<script>
+const params = { Lambda: 1, alpha: 0.10, n: 1, beta: 0.5, fa: 12 };
+let currentTab = 'potential';
+
+function updateParam(name, val) {
+  params[name] = parseFloat(val);
+  // Update display labels
+  if (name === 'Lambda') document.getElementById('val_Lambda').textContent = val + ' × 10¹⁶ GeV';
+  else if (name === 'alpha') document.getElementById('val_alpha').textContent = parseFloat(val).toFixed(2);
+  else if (name === 'n') document.getElementById('val_n').textContent = parseInt(val);
+  else if (name === 'beta') document.getElementById('val_beta').textContent = parseFloat(val).toFixed(2);
+  else if (name === 'fa') document.getElementById('val_fa').textContent = '10^' + val + ' GeV';
+  updateDerived();
+  drawPlot();
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  const xl = document.getElementById('xLabel');
+  if (tab === 'potential') xl.textContent = 'φ / f_a  (axion decay constant units)';
+  else if (tab === 'field') xl.textContent = 'N  (number of e-folds from end of inflation)';
+  else xl.textContent = 'log k / k★  (comoving wavenumber)';
+  drawPlot();
+}
+
+// Potential function
+function V(phi) {
+  const x = phi / 20; // scaled to Planck units
+  const plateau = 1 - Math.exp(-params.beta * x * x);
+  const axion = 1 - params.alpha * Math.cos(params.n * phi * Math.PI);
+  return params.Lambda * params.Lambda * plateau * axion;
+}
+
+// Slow roll parameters
+function slowRoll(phi) {
+  const h = 0.001;
+  const dV = (V(phi + h) - V(phi - h)) / (2 * h);
+  const d2V = (V(phi + h) - 2 * V(phi) + V(phi - h)) / (h * h);
+  const Vp = V(phi);
+  if (Vp < 1e-12) return { eps: 0, eta: 0 };
+  const eps = 0.5 * (dV / Vp) * (dV / Vp);
+  const eta = d2V / Vp;
+  return { eps, eta };
+}
+
+function updateDerived() {
+  // Evaluate at slow-roll region (phi ~ 5)
+  const phi0 = 4.5;
+  const sr = slowRoll(phi0);
+  const ns = (1 - 6 * sr.eps + 2 * sr.eta).toFixed(4);
+  const r = (16 * sr.eps).toFixed(4);
+  const dP = (params.alpha * params.n).toFixed(3);
+  const ma_exp = -(params.fa - 12) * 0.5 - 5;
+  const ma = '10^' + ma_exp.toFixed(1) + ' eV';
+  const Ne = Math.round(55 + 5 * Math.log(params.Lambda));
+  const Ms = '10^' + (ma_exp < -5 ? (-(ma_exp) * 0.5 - 10).toFixed(1) : '-12') + ' M☉';
+
+  document.getElementById('ro_ns').textContent = ns;
+  document.getElementById('ro_r').textContent = r;
+  document.getElementById('ro_dP').textContent = dP;
+  document.getElementById('ro_ma').textContent = ma;
+  document.getElementById('ro_Ne').textContent = Ne;
+  document.getElementById('ro_Ms').textContent = Ms;
+
+  // CMB consistency: ns should be ~0.965 ± 0.01, r < 0.06
+  const nsVal = parseFloat(ns);
+  const rVal = parseFloat(r);
+  const cmbScore = Math.max(0, Math.min(100,
+    100 - Math.abs(nsVal - 0.965) * 5000 - Math.max(0, rVal - 0.06) * 2000
+  ));
+  document.getElementById('cmb_bar').style.width = cmbScore + '%';
+  document.getElementById('cmb_label').textContent = cmbScore > 70 ? 'CONSISTENT' : cmbScore > 40 ? 'MARGINAL' : 'EXCLUDED';
+  document.getElementById('cmb_bar').style.background = cmbScore > 70 ? 'var(--green)' : cmbScore > 40 ? 'var(--gold)' : 'var(--red)';
+
+  // Axion star viability: need fa in 10^10-10^13, alpha > 0.05
+  const faVal = params.fa;
+  const astScore = Math.max(0, Math.min(100,
+    (faVal >= 10 && faVal <= 13.5 ? 50 : 10) +
+    (params.alpha > 0.05 ? Math.min(50, params.alpha * 300) : 5)
+  ));
+  document.getElementById('ast_bar').style.width = astScore + '%';
+  document.getElementById('ast_label').textContent = astScore > 70 ? 'VIABLE' : astScore > 40 ? 'PARTIAL' : 'SUPPRESSED';
+  document.getElementById('ast_bar').style.background = astScore > 70 ? 'var(--gold)' : astScore > 40 ? 'var(--accent)' : 'var(--red)';
+
+  // color ns
+  const nsEl = document.getElementById('ro_ns');
+  nsEl.className = 'readout-num' + (Math.abs(nsVal - 0.965) < 0.01 ? '' : ' warn');
+}
+
+// Drawing
+function drawPlot() {
+  const canvas = document.getElementById('mainCanvas');
+  const W = canvas.parentElement.clientWidth;
+  const H = canvas.parentElement.clientHeight;
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const PAD = { l: 58, r: 20, t: 20, b: 40 };
+  const pw = W - PAD.l - PAD.r;
+  const ph = H - PAD.t - PAD.b;
+
+  // Dark background
+  ctx.fillStyle = '#030810';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#0d2040';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const x = PAD.l + pw * i / 5;
+    ctx.beginPath(); ctx.moveTo(x, PAD.t); ctx.lineTo(x, PAD.t + ph); ctx.stroke();
+  }
+  for (let i = 0; i <= 5; i++) {
+    const y = PAD.t + ph * i / 5;
+    ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(PAD.l + pw, y); ctx.stroke();
+  }
+
+  if (currentTab === 'potential') drawPotentialPlot(ctx, PAD, pw, ph, W, H);
+  else if (currentTab === 'field') drawFieldPlot(ctx, PAD, pw, ph, W, H);
+  else drawDensityPlot(ctx, PAD, pw, ph, W, H);
+}
+
+function drawPotentialPlot(ctx, PAD, pw, ph, W, H) {
+  const N = 800;
+  const phiMin = 0, phiMax = 10;
+
+  // Compute values
+  const vals = [];
+  for (let i = 0; i <= N; i++) {
+    const phi = phiMin + (phiMax - phiMin) * i / N;
+    vals.push(V(phi));
+  }
+  const maxV = Math.max(...vals) * 1.05;
+
+  function px(phi) { return PAD.l + (phi - phiMin) / (phiMax - phiMin) * pw; }
+  function py(v) { return PAD.t + ph - v / maxV * ph; }
+
+  // Draw slow-roll region highlight
+  const srEnd = 1.5;
+  const srStart = 3.5;
+  const grd = ctx.createLinearGradient(px(srStart), 0, px(srEnd), 0);
+  grd.addColorStop(0, 'rgba(0,200,255,0.04)');
+  grd.addColorStop(0.5, 'rgba(0,200,255,0.08)');
+  grd.addColorStop(1, 'rgba(0,200,255,0.02)');
+  ctx.fillStyle = grd;
+  ctx.fillRect(px(srEnd), PAD.t, px(srStart) - px(srEnd), ph);
+
+  // Label
+  ctx.fillStyle = 'rgba(0,200,255,0.35)';
+  ctx.font = "10px 'Share Tech Mono', monospace";
+  ctx.fillText('SLOW-ROLL', px(2.2), PAD.t + 16);
+
+  // Draw potential line
+  ctx.beginPath();
+  for (let i = 0; i <= N; i++) {
+    const phi = phiMin + (phiMax - phiMin) * i / N;
+    const v = V(phi);
+    const x = px(phi), y = py(v);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = '#00c8ff';
+  ctx.lineWidth = 2;
+  ctx.shadowColor = '#00c8ff';
+  ctx.shadowBlur = 8;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Draw a "without modulation" reference
+  ctx.beginPath();
+  for (let i = 0; i <= N; i++) {
+    const phi = phiMin + (phiMax - phiMin) * i / N;
+    const x = phi / 20;
+    const vRef = params.Lambda * params.Lambda * (1 - Math.exp(-params.beta * x * x));
+    const cx2 = px(phi), cy2 = py(vRef);
+    i === 0 ? ctx.moveTo(cx2, cy2) : ctx.lineTo(cx2, cy2);
+  }
+  ctx.strokeStyle = 'rgba(100,160,220,0.3)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Legend
+  ctx.fillStyle = '#00c8ff';
+  ctx.fillRect(PAD.l + pw - 180, PAD.t + 15, 18, 2);
+  ctx.fillStyle = '#8ab0d0';
+  ctx.font = "10px 'Share Tech Mono', monospace";
+  ctx.fillText('V(φ) with axion', PAD.l + pw - 156, PAD.t + 19);
+  ctx.fillStyle = 'rgba(100,160,220,0.5)';
+  ctx.fillRect(PAD.l + pw - 180, PAD.t + 30, 18, 2);
+  ctx.fillStyle = '#8ab0d0';
+  ctx.fillText('Plateau only', PAD.l + pw - 156, PAD.t + 34);
+
+  // Mark inflaton field value
+  const phi_CMB = 5;
+  ctx.beginPath();
+  ctx.moveTo(px(phi_CMB), PAD.t);
+  ctx.lineTo(px(phi_CMB), PAD.t + ph);
+  ctx.strokeStyle = 'rgba(240,160,48,0.4)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(240,160,48,0.6)';
+  ctx.fillText('φ_CMB', px(phi_CMB) + 4, PAD.t + ph - 10);
+
+  // Axes
+  ctx.strokeStyle = '#1a3050';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD.l, PAD.t); ctx.lineTo(PAD.l, PAD.t + ph); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PAD.l, PAD.t + ph); ctx.lineTo(PAD.l + pw, PAD.t + ph); ctx.stroke();
+
+  ctx.fillStyle = '#4a7090';
+  ctx.font = "10px 'Share Tech Mono'";
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 5; i++) {
+    const phi = phiMin + (phiMax - phiMin) * i / 5;
+    ctx.fillText(phi.toFixed(1), px(phi), PAD.t + ph + 16);
+  }
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const v = maxV * i / 5;
+    ctx.fillText((v / (params.Lambda * params.Lambda)).toFixed(2), PAD.l - 6, py(v) + 4);
+  }
+
+  // Y-axis label
+  ctx.save();
+  ctx.translate(14, PAD.t + ph / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = '#4a7090';
+  ctx.textAlign = 'center';
+  ctx.font = "10px 'Share Tech Mono'";
+  ctx.fillText('V / Λ⁴', 0, 0);
+  ctx.restore();
+}
+
+function drawFieldPlot(ctx, PAD, pw, ph, W, H) {
+  const N = 600;
+  // Simple slow-roll field evolution dφ/dN = -V'/V * M_Pl^2
+  const phi0 = 8;
+  const phis = [phi0];
+  const eps_arr = [];
+  const dt = 0.05;
+  let phi = phi0;
+  let Ne = 0;
+  const NeMax = 80;
+  while (Ne < NeMax) {
+    const h = 0.001;
+    const dV = (V(phi + h) - V(phi - h)) / (2 * h);
+    const Vp = V(phi);
+    const eps = 0.5 * (dV / Vp) * (dV / Vp);
+    if (eps > 1) break;
+    phi = phi - dV / Vp * dt;
+    Ne += dt;
+    phis.push(phi);
+    eps_arr.push(eps);
+  }
+
+  const Ne_total = phis.length * dt;
+  const phi_min = Math.min(...phis), phi_max = Math.max(...phis);
+
+  function px(ne) { return PAD.l + ne / (phis.length - 1) * pw; }
+  function py_phi(p) { return PAD.t + ph - (p - phi_min) / (phi_max - phi_min + 0.01) * ph; }
+
+  // Background gradient fade
+  const grd = ctx.createLinearGradient(PAD.l, 0, PAD.l + pw, 0);
+  grd.addColorStop(0, 'rgba(0,200,255,0.04)');
+  grd.addColorStop(0.7, 'rgba(0,200,255,0.02)');
+  grd.addColorStop(1, 'rgba(255,64,96,0.06)');
+  ctx.fillStyle = grd;
+  ctx.fillRect(PAD.l, PAD.t, pw, ph);
+
+  // Field trajectory
+  ctx.beginPath();
+  phis.forEach((p, i) => {
+    const x = px(i), y = py_phi(p);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = '#00c8ff';
+  ctx.lineWidth = 2;
+  ctx.shadowColor = '#00c8ff';
+  ctx.shadowBlur = 6;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Oscillation imprint indicator (at modulation nodes)
+  if (params.alpha > 0.03) {
+    for (let i = 1; i < phis.length - 1; i++) {
+      const phi = phis[i];
+      const frac = phi * params.n % 1;
+      if (Math.abs(frac - 0) < 0.03 || Math.abs(frac - 0.5) < 0.03) {
+        ctx.beginPath();
+        ctx.arc(px(i), py_phi(phi), 3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(240,160,48,0.5)';
+        ctx.fill();
+      }
+    }
+  }
+
+  ctx.fillStyle = 'rgba(240,160,48,0.6)';
+  ctx.font = "10px 'Share Tech Mono'";
+  ctx.fillText('● axion resonance nodes', PAD.l + pw - 200, PAD.t + 30);
+
+  // End of inflation marker
+  ctx.strokeStyle = 'rgba(255,64,96,0.5)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 4]);
+  ctx.beginPath();
+  ctx.moveTo(px(phis.length - 1), PAD.t);
+  ctx.lineTo(px(phis.length - 1), PAD.t + ph);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(255,64,96,0.7)';
+  ctx.font = "10px 'Share Tech Mono'";
+  ctx.fillText('END INFLATION', px(phis.length - 1) - 90, PAD.t + 16);
+
+  // Axes
+  ctx.strokeStyle = '#1a3050'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD.l, PAD.t); ctx.lineTo(PAD.l, PAD.t + ph); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PAD.l, PAD.t + ph); ctx.lineTo(PAD.l + pw, PAD.t + ph); ctx.stroke();
+  ctx.fillStyle = '#4a7090'; ctx.font = "10px 'Share Tech Mono'";
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 5; i++) {
+    const ne = phis.length * i / 5;
+    ctx.fillText((ne * dt).toFixed(0), px(ne), PAD.t + ph + 16);
+  }
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const p = phi_min + (phi_max - phi_min) * i / 5;
+    ctx.fillText(p.toFixed(1), PAD.l - 6, py_phi(p) + 4);
+  }
+  ctx.save();
+  ctx.translate(14, PAD.t + ph / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = '#4a7090'; ctx.textAlign = 'center'; ctx.font = "10px 'Share Tech Mono'";
+  ctx.fillText('φ / f_a', 0, 0);
+  ctx.restore();
+}
+
+function drawDensityPlot(ctx, PAD, pw, ph, W, H) {
+  const N = 600;
+  // Power spectrum: Starobinsky base + axion oscillations + axion star peak
+  function Pk(lnk) {
+    const k = Math.exp(lnk);
+    // Base spectrum
+    const As = 2.1e-9;
+    const ns = 0.965 - 0.02 * params.beta;
+    const base = As * Math.pow(k, ns - 1);
+    // Axion modulation feature
+    const kStar = 0.05; // Mpc^-1
+    const omega = params.n * 2.0;
+    const modulation = 1 + params.alpha * Math.sin(omega * Math.log(k / kStar)) * Math.exp(-0.3 * Math.pow(Math.log(k / kStar), 2));
+    // Axion star formation peak (around k ~ axion Jeans scale)
+    const fa_exp = params.fa;
+    const kJeans = Math.pow(10, (fa_exp - 12) * 0.5 + 1.5); // relative to kStar
+    const peak = 1 + 0.4 * params.alpha * Math.exp(-0.5 * Math.pow((k - kJeans * kStar) / (0.8 * kStar), 2));
+    return base * modulation * peak;
+  }
+
+  const lnkMin = Math.log(0.001), lnkMax = Math.log(100);
+  const vals = [];
+  for (let i = 0; i <= N; i++) {
+    const lnk = lnkMin + (lnkMax - lnkMin) * i / N;
+    vals.push(Pk(lnk));
+  }
+  const maxP = Math.max(...vals) * 1.1;
+  const minP = Math.min(...vals) * 0.9;
+
+  function px(i) { return PAD.l + i / N * pw; }
+  function py(p) { return PAD.t + ph - (Math.log(p) - Math.log(minP)) / (Math.log(maxP) - Math.log(minP)) * ph; }
+
+  // Axion star formation region
+  const kStar = 0.05;
+  const fa_exp = params.fa;
+  const kJeans = Math.pow(10, (fa_exp - 12) * 0.5 + 1.5) * kStar;
+  const iJeans = Math.round((Math.log(kJeans) - lnkMin) / (lnkMax - lnkMin) * N);
+  if (iJeans > 10 && iJeans < N - 10) {
+    const grd = ctx.createLinearGradient(px(iJeans - 40), 0, px(iJeans + 40), 0);
+    grd.addColorStop(0, 'rgba(240,160,48,0)');
+    grd.addColorStop(0.5, 'rgba(240,160,48,0.12)');
+    grd.addColorStop(1, 'rgba(240,160,48,0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(px(Math.max(0, iJeans - 50)), PAD.t, px(Math.min(N, iJeans + 50)) - px(Math.max(0, iJeans - 50)), ph);
+    ctx.fillStyle = 'rgba(240,160,48,0.6)';
+    ctx.font = "10px 'Share Tech Mono'";
+    ctx.textAlign = 'center';
+    ctx.fillText('AXION STAR', px(iJeans), PAD.t + 16);
+    ctx.fillText('k_Jeans', px(iJeans), PAD.t + 28);
+  }
+
+  // Plot spectrum
+  ctx.beginPath();
+  for (let i = 0; i <= N; i++) {
+    const p = vals[i];
+    const x = px(i), y = py(p);
+    if (!isFinite(y)) continue;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = '#30e8a0';
+  ctx.lineWidth = 2;
+  ctx.shadowColor = '#30e8a0';
+  ctx.shadowBlur = 6;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Planck constraint band
+  ctx.fillStyle = 'rgba(0,200,255,0.06)';
+  ctx.fillRect(PAD.l, py(3e-9), pw, py(1.4e-9) - py(3e-9));
+  ctx.fillStyle = 'rgba(0,200,255,0.3)';
+  ctx.font = "9px 'Share Tech Mono'";
+  ctx.textAlign = 'left';
+  ctx.fillText('Planck 2σ window', PAD.l + 8, py(2.1e-9) + 4);
+
+  // Axes
+  ctx.strokeStyle = '#1a3050'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD.l, PAD.t); ctx.lineTo(PAD.l, PAD.t + ph); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PAD.l, PAD.t + ph); ctx.lineTo(PAD.l + pw, PAD.t + ph); ctx.stroke();
+  ctx.fillStyle = '#4a7090'; ctx.font = "10px 'Share Tech Mono'";
+  ctx.textAlign = 'center';
+  const kTicks = [0.001, 0.01, 0.1, 1, 10, 100];
+  kTicks.forEach(k => {
+    const i = Math.round((Math.log(k) - lnkMin) / (lnkMax - lnkMin) * N);
+    if (i >= 0 && i <= N) ctx.fillText(k, px(i), PAD.t + ph + 16);
+  });
+  ctx.textAlign = 'right';
+  for (let j = 0; j <= 4; j++) {
+    const p = minP * Math.pow(maxP / minP, j / 4);
+    ctx.fillText(p.toExponential(0), PAD.l - 6, py(p) + 4);
+  }
+  ctx.save();
+  ctx.translate(14, PAD.t + ph / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = '#4a7090'; ctx.textAlign = 'center'; ctx.font = "10px 'Share Tech Mono'";
+  ctx.fillText('Δ²(k)', 0, 0);
+  ctx.restore();
+}
+
+// Init
+updateDerived();
+drawPlot();
+window.addEventListener('resize', drawPlot);
+</script>
+</body>
+</html>
